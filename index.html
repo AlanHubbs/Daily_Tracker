@@ -678,6 +678,9 @@
                     <span id="streakCount">0</span>
                 </div>
                 
+                <button class="settings-btn" id="exportBtn" title="Export Data" aria-label="Export Data">📤</button>
+                <button class="settings-btn" id="importBtn" title="Import Data" aria-label="Import Data">📥</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
                 <button class="settings-btn" id="settingsBtn" aria-label="Settings">⚙️</button>
             </div>
         </header>
@@ -862,6 +865,81 @@
                 } catch (e) {
                     console.error('Failed to load from localStorage:', e);
                 }
+            }
+
+            // ==================== Data Management ====================
+            function exportData() {
+                try {
+                    const data = localStorage.getItem(STORAGE_KEY);
+                    const settings = localStorage.getItem(SETTINGS_KEY);
+
+                    const dataToExport = {
+                        [STORAGE_KEY]: data ? JSON.parse(data) : {},
+                        [SETTINGS_KEY]: settings ? JSON.parse(settings) : {}
+                    };
+
+                    const jsonString = JSON.stringify(dataToExport, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    const today = new Date().toISOString().split('T')[0];
+                    a.href = url;
+                    a.download = `daily_tracker_export_${today}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 0);
+                } catch (e) {
+                    console.error('Failed to export data:', e);
+                    alert('Error exporting data. See console for details.');
+                }
+            }
+
+            function importData(event) {
+                const file = event.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+
+                        if (!imported.hasOwnProperty(STORAGE_KEY) || !imported.hasOwnProperty(SETTINGS_KEY)) {
+                            throw new Error('Invalid import file structure. Missing required keys.');
+                        }
+
+                        const importedData = imported[STORAGE_KEY] || {};
+                        const importedSettings = imported[SETTINGS_KEY] || {};
+
+                        // Merge Tasks: Add new tasks, skip existing ones by ID
+                        const existingTaskIds = new Set(AppState.tasks.map(t => t.id));
+                        const newTasks = (importedData.tasks || []).filter(t => !existingTaskIds.has(t.id));
+
+                        // Update AppState
+                        AppState.tasks = [...AppState.tasks, ...newTasks];
+                        AppState.xp = Math.max(AppState.xp || 0, importedData.xp || 0);
+                        AppState.streak = Math.max(AppState.streak || 0, importedData.streak || 0);
+                        AppState.settings = { ...AppState.settings, ...importedSettings };
+
+                        saveToStorage();
+
+                        alert('Data imported successfully! The application will now reload.');
+                        location.reload();
+
+                    } catch (error) {
+                        console.error('Failed to import data:', error);
+                        alert('Error importing data. Please make sure the file is a valid JSON export.');
+                    } finally {
+                        event.target.value = '';
+                    }
+                };
+                reader.readAsText(file);
             }
 
             // ==================== Task Management ====================
@@ -1363,6 +1441,15 @@
                     saveToStorage();
                     renderTasks();
                 });
+
+                // Export button
+                document.getElementById('exportBtn').addEventListener('click', exportData);
+
+                // Import button
+                document.getElementById('importBtn').addEventListener('click', () => {
+                    document.getElementById('importFile').click();
+                });
+                document.getElementById('importFile').addEventListener('change', importData);
 
                 // Settings button (placeholder)
                 document.getElementById('settingsBtn').addEventListener('click', function() {
