@@ -1,0 +1,319 @@
+{
+  "version": "1.0.0",
+  "tasks": [
+    {
+      "id": "demo_001",
+      "title": "Morning meditation - 10 minutes",
+      "priority": "low",
+      "createdAt": 1704110400000,
+      "completedAt": 1704112200000,
+      "orderIndex": 0,
+      "dateAssigned": "2024-01-01",
+      "groupId": "health"
+    },
+    {
+      "id": "demo_002",
+      "title": "Review quarterly goals",
+      "priority": "high",
+      "createdAt": 1704110500000,
+      "completedAt": null,
+      "orderIndex": 1,
+      "dateAssigned": "2024-01-01",
+      "groupId": "planning"
+    },
+    {
+      "id": "demo_003",
+      "title": "Team standup meeting @ 9:30 AM",
+      "priority": "med",
+      "createdAt": 1704110600000,
+      "completedAt": 1704118800000,
+      "orderIndex": 2,
+      "dateAssigned": "2024-01-01",
+      "groupId": "work"
+    },
+    {
+      "id": "demo_004",
+      "title": "Complete project documentation",
+      "priority": "high",
+      "createdAt": 1704110700000,
+      "completedAt": null,
+      "orderIndex": 3,
+      "dateAssigned": "2024-01-01",
+      "groupId": "work"
+    },
+    {
+      "id": "demo_005",
+      "title": "Lunch with Sarah @ 12:30 PM",
+      "priority": "low",
+      "createdAt": 1704110800000,
+      "completedAt": 1704129600000,
+      "orderIndex": 4,
+      "dateAssigned": "2024-01-01",
+      "groupId": "personal"
+    },
+    {
+      "id": "demo_006",
+      "title": "Code review for PR #234",
+      "priority": "med",
+      "createdAt": 1704110900000,
+      "completedAt": 1704133200000,
+      "orderIndex": 5,
+      "dateAssigned": "2024-01-01",
+      "groupId": "work"
+    },
+    {
+      "id": "demo_007",
+      "title": "Grocery shopping - milk, eggs, bread",
+      "priority": "low",
+      "createdAt": 1704111000000,
+      "completedAt": null,
+      "orderIndex": 6,
+      "dateAssigned": "2024-01-01",
+      "groupId": "personal"
+    },
+    {
+      "id": "demo_008",
+      "title": "30-minute workout",
+      "priority": "med",
+      "createdAt": 1704111100000,
+      "completedAt": 1704140400000,
+      "orderIndex": 7,
+      "dateAssigned": "2024-01-01",
+      "groupId": "health"
+    },
+    {
+      "id": "demo_009",
+      "title": "Read 20 pages of current book",
+      "priority": "low",
+      "createdAt": 1704111200000,
+      "completedAt": null,
+      "orderIndex": 8,
+      "dateAssigned": "2024-01-01",
+      "groupId": "personal"
+    },
+    {
+      "id": "demo_010",
+      "title": "Prepare tomorrow's presentation",
+      "priority": "high",
+      "createdAt": 1704111300000,
+      "completedAt": null,
+      "orderIndex": 9,
+      "dateAssigned": "2024-01-01",
+      "groupId": "work"
+    }
+  ],
+  "groups": [
+    {
+      "id": "health",
+      "name": "Health & Wellness",
+      "tasks": [
+        {
+          "title": "Morning meditation - 10 minutes",
+          "priority": "low",
+          "notes": "Focus on breathing"
+        },
+        {
+          "title": "30-minute workout",
+          "priority": "med",
+          "notes": "Cardio or strength training"
+        },
+        {
+          "title": "Drink 8 glasses of water",
+          "priority": "low",
+          "notes": "Stay hydrated throughout the day"
+        }
+      ],
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "work",
+      "name": "Work Routine",
+      "tasks": [
+        {
+          "title": "Check and respond to emails",
+          "priority": "med",
+          "notes": "Prioritize urgent messages"
+        },
+        {
+          "title": "Daily standup meeting",
+          "priority": "med",
+          "notes": "Share progress and blockers"
+        },
+        {
+          "title": "Code review",
+          "priority": "med",
+          "notes": "Review pending PRs"
+        },
+        {
+          "title": "Update project board",
+          "priority": "low",
+          "notes": "Move completed tasks"
+        }
+      ],
+      "createdAt": 1704067300000
+    },
+    {
+      "id": "planning",
+      "name": "Planning & Review",
+      "tasks": [
+        {
+          "title": "Review daily goals",
+          "priority": "med",
+          "notes": "Morning planning session"
+        },
+        {
+          "title": "Plan tomorrow's tasks",
+          "priority": "med",
+          "notes": "Evening planning"
+        },
+        {
+          "title": "Weekly review",
+          "priority": "high",
+          "notes": "Reflect on accomplishments"
+        }
+      ],
+      "createdAt": 1704067400000
+    },
+    {
+      "id": "personal",
+      "name": "Personal Tasks",
+      "tasks": [
+        {
+          "title": "Read for 30 minutes",
+          "priority": "low",
+          "notes": "Continue current book"
+        },
+        {
+          "title": "Practice new skill",
+          "priority": "med",
+          "notes": "Dedicate time to learning"
+        },
+        {
+          "title": "Connect with friend/family",
+          "priority": "low",
+          "notes": "Call or message someone"
+        }
+      ],
+      "createdAt": 1704067500000
+    }
+  ],
+  "recurrenceRules": [
+    {
+      "id": "daily_meditation",
+      "name": "Daily Meditation",
+      "pattern": {
+        "type": "daily"
+      },
+      "taskTemplate": {
+        "title": "Morning meditation - 10 minutes",
+        "priority": "low",
+        "notes": "Start the day with mindfulness"
+      },
+      "enabled": true,
+      "lastRun": "2024-01-01"
+    },
+    {
+      "id": "weekday_standup",
+      "name": "Weekday Standup",
+      "pattern": {
+        "type": "weekdays"
+      },
+      "taskTemplate": {
+        "title": "Team standup meeting @ 9:30 AM",
+        "priority": "med",
+        "notes": "Share progress and blockers"
+      },
+      "enabled": true,
+      "lastRun": "2024-01-01"
+    },
+    {
+      "id": "weekly_review",
+      "name": "Weekly Review",
+      "pattern": {
+        "type": "specific",
+        "days": [5]
+      },
+      "taskTemplate": {
+        "title": "Weekly review and planning",
+        "priority": "high",
+        "notes": "Reflect on the week and plan ahead"
+      },
+      "enabled": true,
+      "lastRun": "2023-12-29"
+    },
+    {
+      "id": "monthly_goals",
+      "name": "Monthly Goals Review",
+      "pattern": {
+        "type": "monthly",
+        "date": 1
+      },
+      "taskTemplate": {
+        "title": "Review and set monthly goals",
+        "priority": "high",
+        "notes": "Assess progress and set new objectives"
+      },
+      "enabled": true,
+      "lastRun": "2024-01-01"
+    }
+  ],
+  "settings": {
+    "theme": "light",
+    "soundEnabled": true,
+    "soundVolume": 0.4,
+    "notificationsEnabled": false,
+    "notificationTimes": ["08:30", "12:00", "15:00"],
+    "timezone": "MST",
+    "weekStartsMonday": true,
+    "privacyMode": false,
+    "sortMode": "auto",
+    "showCompletedAtBottom": true,
+    "monthlyBackupReminder": true,
+    "lastBackupDate": "2023-12-01"
+  },
+  "analytics": {
+    "totalTasksCreated": 250,
+    "totalTasksCompleted": 198,
+    "currentStreak": 7,
+    "longestStreak": 21,
+    "totalXP": 4520,
+    "level": 45,
+    "achievements": [
+      {
+        "id": "week_warrior",
+        "name": "Week Warrior",
+        "description": "Maintained a 7-day streak",
+        "unlockedAt": 1703548800000
+      },
+      {
+        "id": "century_club",
+        "name": "Century Club",
+        "description": "Completed 100 tasks",
+        "unlockedAt": 1702944000000
+      }
+    ],
+    "dailyStats": {
+      "2024-01-01": {
+        "created": 10,
+        "completed": 5,
+        "xpEarned": 70
+      },
+      "2023-12-31": {
+        "created": 8,
+        "completed": 8,
+        "xpEarned": 120
+      },
+      "2023-12-30": {
+        "created": 12,
+        "completed": 10,
+        "xpEarned": 150
+      }
+    }
+  },
+  "metadata": {
+    "exportDate": "2024-01-01T12:00:00.000Z",
+    "version": "1.0.0",
+    "totalItems": 10,
+    "description": "Demo data for Daily_Tracker application testing"
+  }
+}

@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="A gamified daily task tracker with offline support">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Daily_Tracker</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+    
+    <style>
+        /* CSS Variables for Theming */
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f3f4f6;
+            --bg-tertiary: #e5e7eb;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            --border: #d1d5db;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --priority-low: #10b981;
+            --priority-med: #f59e0b;
+            --priority-high: #ef4444;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --bg-tertiary: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-tertiary: #9ca3af;
+            --border: #4b5563;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* XP Bar */
+        .xp-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .xp-bar {
+            width: 200px;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .xp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Streak Counter */
+        .streak-counter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--warning);
+        }
+
+        .streak-icon {
+            font-size: 24px;
+        }
+
+        /* Settings Button */
+        .settings-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
+        }
+
+        .settings-btn:hover {
+            color: var(--primary);
+        }
+
+        /* Task Input */
+        .task-input-container {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .task-input-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .task-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.3s ease;
+        }
+
+        .task-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .priority-selector {
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .add-task-btn {
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .add-task-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Task List */
+        .task-list {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 300px;
+        }
+
+        .task-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .task-list-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .sort-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sort-btn {
+            padding: 8px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sort-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Task Item */
+        .task-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: move;
+            transition: all 0.3s ease;
+        }
+
+        .task-item:hover {
+            box-shadow: 0 4px 12px var(--shadow);
+            transform: translateY(-2px);
+        }
+
+        .task-item.completed {
+            opacity: 0.6;
+        }
+
+        .task-item.completed .task-title {
+            text-decoration: line-through;
+        }
+
+        .task-item.dragging {
+            opacity: 0.5;
+        }
+
+        .task-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .task-checkbox:hover {
+            border-color: var(--primary);
+        }
+
+        .task-checkbox.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .task-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .task-time {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .priority-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .priority-low {
+            background: var(--priority-low);
+            color: white;
+        }
+
+        .priority-med {
+            background: var(--priority-med);
+            color: white;
+        }
+
+        .priority-high {
+            background: var(--priority-high);
+            color: white;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .task-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 18px;
+            transition: color 0.3s ease;
+        }
+
+        .task-action-btn:hover {
+            color: var(--primary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg-tertiary);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .xp-container {
+                flex-direction: column;
+            }
+
+            .task-input-form {
+                flex-direction: column;
+            }
+
+            .task-input {
+                width: 100%;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .header, .task-input-container, .task-actions, .settings-btn {
+                display: none;
+            }
+
+            .task-item {
+                break-inside: avoid;
+            }
+        }
+
+        /* Accessibility Focus States */
+        *:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .task-item {
+            animation: slideIn 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- 
+    Daily_Tracker v1.0.0
+    
+    README:
+    - Single-file PWA task tracker with gamification
+    - Uses localStorage for offline persistence
+    - MST timezone, week starts Monday
+    - Install as PWA for Spotlight search (macOS)
+    
+    Keyboard Shortcuts:
+    - N: New task
+    - G: Add group template
+    - Cmd/Ctrl+K: Quick add
+    - Enter: Toggle complete
+    - Alt/Option+↑/↓: Reorder (Manual view)
+    - /: Focus search
+    
+    Schema:
+    - Tasks stored with id, title, priority, timestamps
+    - Groups for reusable templates
+    - Recurrence rules for automated task creation
+    - All data in localStorage, exportable as JSON
+    -->
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎯 Daily_Tracker</h1>
+            
+            <div class="xp-container">
+                <div class="xp-bar">
+                    <div class="xp-fill" id="xpFill">0 XP</div>
+                </div>
+                
+                <div class="streak-counter">
+                    <span class="streak-icon">🔥</span>
+                    <span id="streakCount">0</span>
+                </div>
+                
+                <button class="settings-btn" id="settingsBtn" aria-label="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Task Input -->
+        <div class="task-input-container">
+            <form class="task-input-form" id="taskForm">
+                <input 
+                    type="text" 
+                    class="task-input" 
+                    id="taskInput" 
+                    placeholder="What needs to be done today?"
+                    aria-label="New task"
+                    autocomplete="off"
+                >
+                
+                <select class="priority-selector" id="prioritySelector" aria-label="Priority">
+                    <option value="low">Low Priority</option>
+                    <option value="med">Medium Priority</option>
+                    <option value="high">High Priority</option>
+                </select>
+                
+                <button type="submit" class="add-task-btn">Add Task</button>
+            </form>
+        </div>
+
+        <!-- Task List -->
+        <div class="task-list">
+            <div class="task-list-header">
+                <h2 class="task-list-title">Today's Tasks</h2>
+                
+                <div class="sort-toggle">
+                    <button class="sort-btn active" id="autoSortBtn">Auto Sort</button>
+                    <button class="sort-btn" id="manualSortBtn">Manual</button>
+                </div>
+            </div>
+            
+            <div id="taskListContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <h3 class="empty-state-title">No tasks yet</h3>
+                    <p class="empty-state-text">Add your first task to get started!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <script>
+        // Daily_Tracker Core Application
+        (function() {
+            'use strict';
+
+            // ==================== Constants ====================
+            const STORAGE_KEY = 'daily_tracker_data';
+            const SETTINGS_KEY = 'daily_tracker_settings';
+            const VERSION = '1.0.0';
+            
+            // ==================== State Management ====================
+            const AppState = {
+                tasks: [],
+                settings: {
+                    theme: 'light',
+                    soundEnabled: true,
+                    soundVolume: 0.4,
+                    sortMode: 'auto',
+                    showCompletedAtBottom: true
+                },
+                currentDate: new Date().toISOString().split('T')[0],
+                xp: 0,
+                streak: 0
+            };
+
+            // ==================== Utility Functions ====================
+            function generateId() {
+                return 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            function formatTime(timestamp) {
+                const date = new Date(timestamp);
+                const hours = date.getHours();
+                const minutes = date.getMinutes();
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours % 12 || 12;
+                return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            }
+
+            function saveToStorage() {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                        version: VERSION,
+                        tasks: AppState.tasks,
+                        xp: AppState.xp,
+                        streak: AppState.streak,
+                        lastUpdate: Date.now()
+                    }));
+                    localStorage.setItem(SETTINGS_KEY, JSON.stringify(AppState.settings));
+                } catch (e) {
+                    console.error('Failed to save to localStorage:', e);
+                }
+            }
+
+            function loadFromStorage() {
+                try {
+                    const data = localStorage.getItem(STORAGE_KEY);
+                    const settings = localStorage.getItem(SETTINGS_KEY);
+                    
+                    if (data) {
+                        const parsed = JSON.parse(data);
+                        AppState.tasks = parsed.tasks || [];
+                        AppState.xp = parsed.xp || 0;
+                        AppState.streak = parsed.streak || 0;
+                    }
+                    
+                    if (settings) {
+                        AppState.settings = { ...AppState.settings, ...JSON.parse(settings) };
+                    }
+                } catch (e) {
+                    console.error('Failed to load from localStorage:', e);
+                }
+            }
+
+            // ==================== Task Management ====================
+            function createTask(title, priority = 'low') {
+                const task = {
+                    id: generateId(),
+                    title: title.trim(),
+                    priority: priority,
+                    createdAt: Date.now(),
+                    completedAt: null,
+                    orderIndex: AppState.tasks.length,
+                    dateAssigned: AppState.currentDate
+                };
+                
+                AppState.tasks.push(task);
+                saveToStorage();
+                return task;
+            }
+
+            function toggleTaskComplete(taskId) {
+                const task = AppState.tasks.find(t => t.id === taskId);
+                if (task) {
+                    if (task.completedAt) {
+                        task.completedAt = null;
+                        updateXP(-getTaskXP(task.priority));
+                    } else {
+                        task.completedAt = Date.now();
+                        updateXP(getTaskXP(task.priority));
+                        playLevelUpSound();
+                        showConfetti();
+                    }
+                    saveToStorage();
+                    renderTasks();
+                }
+            }
+
+            function deleteTask(taskId) {
+                const taskIndex = AppState.tasks.findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    const task = AppState.tasks[taskIndex];
+                    if (task.completedAt) {
+                        updateXP(-getTaskXP(task.priority));
+                    }
+                    AppState.tasks.splice(taskIndex, 1);
+                    saveToStorage();
+                    renderTasks();
+                }
+            }
+
+            function getTaskXP(priority) {
+                const xpMap = { low: 10, med: 20, high: 30 };
+                return xpMap[priority] || 10;
+            }
+
+            function updateXP(amount) {
+                AppState.xp = Math.max(0, AppState.xp + amount);
+                updateXPBar();
+                updateStreak();
+            }
+
+            function updateStreak() {
+                const todayCompleted = AppState.tasks.filter(t => 
+                    t.dateAssigned === AppState.currentDate && t.completedAt
+                ).length;
+                
+                AppState.streak = Math.floor(todayCompleted / 3);
+                document.getElementById('streakCount').textContent = AppState.streak;
+            }
+
+            function updateXPBar() {
+                const xpFill = document.getElementById('xpFill');
+                const maxXP = 100; // XP needed per level
+                const percentage = Math.min(100, (AppState.xp % maxXP) / maxXP * 100);
+                xpFill.style.width = percentage + '%';
+                xpFill.textContent = AppState.xp + ' XP';
+            }
+
+            // ==================== UI Rendering ====================
+            function renderTasks() {
+                const container = document.getElementById('taskListContainer');
+                const todayTasks = AppState.tasks.filter(t => t.dateAssigned === AppState.currentDate);
+                
+                if (todayTasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📝</div>
+                            <h3 class="empty-state-title">No tasks yet</h3>
+                            <p class="empty-state-text">Add your first task to get started!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Sort tasks
+                let sortedTasks = [...todayTasks];
+                if (AppState.settings.sortMode === 'auto') {
+                    sortedTasks.sort((a, b) => {
+                        // Completed tasks at bottom
+                        if (AppState.settings.showCompletedAtBottom) {
+                            if (a.completedAt && !b.completedAt) return 1;
+                            if (!a.completedAt && b.completedAt) return -1;
+                        }
+                        // Then by priority
+                        const priorityOrder = { high: 0, med: 1, low: 2 };
+                        return priorityOrder[a.priority] - priorityOrder[b.priority];
+                    });
+                } else {
+                    sortedTasks.sort((a, b) => a.orderIndex - b.orderIndex);
+                }
+
+                container.innerHTML = sortedTasks.map(task => `
+                    <div class="task-item ${task.completedAt ? 'completed' : ''}" 
+                         data-task-id="${task.id}"
+                         draggable="true">
+                        <div class="task-checkbox ${task.completedAt ? 'checked' : ''}"
+                             onclick="toggleTaskComplete('${task.id}')"></div>
+                        <div class="task-content">
+                            <div class="task-title">${escapeHtml(task.title)}</div>
+                            <div class="task-meta">
+                                <span class="task-time">${formatTime(task.createdAt)}</span>
+                                <span class="priority-badge priority-${task.priority}">${task.priority}</span>
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="task-action-btn" onclick="deleteTask('${task.id}')" aria-label="Delete">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Add drag and drop listeners
+                initDragAndDrop();
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // ==================== Drag and Drop ====================
+            function initDragAndDrop() {
+                const items = document.querySelectorAll('.task-item');
+                let draggedElement = null;
+
+                items.forEach(item => {
+                    item.addEventListener('dragstart', function(e) {
+                        draggedElement = this;
+                        this.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/html', this.innerHTML);
+                    });
+
+                    item.addEventListener('dragend', function() {
+                        this.classList.remove('dragging');
+                    });
+
+                    item.addEventListener('dragover', function(e) {
+                        if (e.preventDefault) e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        
+                        const afterElement = getDragAfterElement(this.parentNode, e.clientY);
+                        if (afterElement == null) {
+                            this.parentNode.appendChild(draggedElement);
+                        } else {
+                            this.parentNode.insertBefore(draggedElement, afterElement);
+                        }
+                        return false;
+                    });
+                });
+            }
+
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.task-item:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            // ==================== Animations ====================
+            function showConfetti() {
+                const canvas = document.getElementById('confetti-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                const confetti = [];
+                const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+                
+                for (let i = 0; i < 100; i++) {
+                    confetti.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height - canvas.height,
+                        vx: Math.random() * 6 - 3,
+                        vy: Math.random() * 3 + 2,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        size: Math.random() * 3 + 2
+                    });
+                }
+                
+                function animate() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    confetti.forEach((p, index) => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.1;
+                        
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(p.x, p.y, p.size, p.size);
+                        
+                        if (p.y > canvas.height) {
+                            confetti.splice(index, 1);
+                        }
+                    });
+                    
+                    if (confetti.length > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    }
+                }
+                
+                animate();
+            }
+
+            function playLevelUpSound() {
+                if (!AppState.settings.soundEnabled) return;
+                
+                // Create a simple level-up sound using Web Audio API
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+                oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+                
+                gainNode.gain.setValueAtTime(AppState.settings.soundVolume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            }
+
+            // ==================== Event Listeners ====================
+            function initEventListeners() {
+                // Task form submission
+                document.getElementById('taskForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const input = document.getElementById('taskInput');
+                    const priority = document.getElementById('prioritySelector').value;
+                    
+                    if (input.value.trim()) {
+                        createTask(input.value, priority);
+                        renderTasks();
+                        input.value = '';
+                        input.focus();
+                    }
+                });
+
+                // Sort mode toggle
+                document.getElementById('autoSortBtn').addEventListener('click', function() {
+                    AppState.settings.sortMode = 'auto';
+                    this.classList.add('active');
+                    document.getElementById('manualSortBtn').classList.remove('active');
+                    saveToStorage();
+                    renderTasks();
+                });
+
+                document.getElementById('manualSortBtn').addEventListener('click', function() {
+                    AppState.settings.sortMode = 'manual';
+                    this.classList.add('active');
+                    document.getElementById('autoSortBtn').classList.remove('active');
+                    saveToStorage();
+                    renderTasks();
+                });
+
+                // Settings button (placeholder)
+                document.getElementById('settingsBtn').addEventListener('click', function() {
+                    alert('Settings panel coming soon! 🚀');
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', function(e) {
+                    // N - New task
+                    if (e.key === 'n' && !e.ctrlKey && !e.metaKey && e.target.tagName !== 'INPUT') {
+                        document.getElementById('taskInput').focus();
+                        e.preventDefault();
+                    }
+                    
+                    // / - Focus search
+                    if (e.key === '/' && e.target.tagName !== 'INPUT') {
+                        // Search functionality to be implemented
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            // ==================== Service Worker Registration ====================
+            function registerServiceWorker() {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('service-worker.js')
+                        .then(registration => {
+                            console.log('ServiceWorker registered:', registration);
+                        })
+                        .catch(error => {
+                            console.log('ServiceWorker registration failed:', error);
+                        });
+                }
+            }
+
+            // ==================== Initialization ====================
+            function init() {
+                loadFromStorage();
+                renderTasks();
+                updateXPBar();
+                updateStreak();
+                initEventListeners();
+                registerServiceWorker();
+                
+                // Apply saved theme
+                if (AppState.settings.theme === 'dark') {
+                    document.body.setAttribute('data-theme', 'dark');
+                }
+                
+                // Make functions globally available for onclick handlers
+                window.toggleTaskComplete = toggleTaskComplete;
+                window.deleteTask = deleteTask;
+            }
+
+            // Start the app
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+        })();
+    </script>
+</body>
+</html>
