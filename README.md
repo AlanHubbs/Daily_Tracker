@@ -39,12 +39,12 @@ A gamified daily task tracker PWA with offline support, built as a single-file H
 ## 🚀 Quick Start
 
 ### Option 1: Use Online
-Visit the live demo: [https://yourusername.github.io/Daily_Tracker](https://yourusername.github.io/Daily_Tracker)
+Visit the live demo: [https://alanhubbs.github.io/Daily_Tracker](https://alanhubbs.github.io/Daily_Tracker)
 
 ### Option 2: Run Locally
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/Daily_Tracker.git
+git clone https://github.com/AlanHubbs/Daily_Tracker.git
 cd Daily_Tracker
 ```
 
