@@ -13,6 +13,12 @@
    - Complete group/template system
    - Template management UI
 
+2. ✅ **feature/data-import-export** (Merged successfully)
+   - Export data as JSON with date-stamped filename
+   - Import JSON with merge (non-destructive)
+   - Fixed: Added groups support to import function
+   - Export/Import buttons in header (📤 📥)
+
 ### Testing Infrastructure Added
 - ✅ Created `test-suite.html` - Automated testing with 30+ tests
 - ✅ Created `TESTING.md` - Complete testing documentation
@@ -42,15 +48,16 @@
 11. **NEW: Add notes to tasks (📝 button)**
 12. **NEW: Create task templates**
 13. **NEW: Manage and use templates**
+14. **NEW: Export all data as JSON (📤 button)**
+15. **NEW: Import and merge JSON data (📥 button)**
 
 ### What's Not Yet Implemented
 Based on the specification (`daily-tracker-spec.md`), these features are still needed:
 
 #### High Priority (Next to Merge)
-1. ⏳ **Data Import/Export** - JSON backup/restore (NEXT)
-2. ⏳ **History & Analytics** - Day/week/month views with stats
-3. ⏳ **Notifications** - PWA notifications at scheduled times
-4. ⏳ **Achievement System** - Unlock badges for milestones
+1. ⏳ **History & Analytics** - Day/week/month views with stats (NEXT)
+2. ⏳ **Notifications** - PWA notifications at scheduled times
+3. ⏳ **Achievement System** - Unlock badges for milestones
 5. **Recurring Tasks** - Daily, weekly, monthly recurrence
 6. **Search & Filters** - Text search, status/priority filtering
 7. **Settings Panel** - Theme toggle, sound controls
@@ -191,7 +198,7 @@ Core features that must work before considering v1.0 complete:
 3. ⬜ Recurring tasks
 4. ⬜ Search and filters
 5. ⬜ Settings panel with theme toggle
-6. ⬜ Data import/export (Next to merge)
+6. ✅ Data import/export
 7. ✅ PWA installation
 8. ⬜ Notifications (Branch ready to merge)
 9. ✅ Offline functionality
@@ -216,17 +223,18 @@ Core features that must work before considering v1.0 complete:
 
 ### Merge Order & Status
 1. ✅ **feature/task-editing-notes-groups** - MERGED (No conflicts)
-2. ⏳ **feature/data-import-export** - Ready to merge
-3. ⏳ **feature/analytics-dashboard** - Pending
+2. ✅ **feature/data-import-export** - MERGED (Fixed groups support)
+3. ⏳ **feature/analytics-dashboard** - Ready to merge (NEXT)
 4. ⏳ **feature/notifications** - Pending (Settings modal conflict expected)
 5. ⏳ **feat/gamification-achievements** - Pending (Most UI changes)
 
 ### Testing Results After Each Merge
 - **Baseline (main)**: Core features ✅, All feature branches undetected
 - **After task-editing merge**: Core ✅, Task editing ✅, Notes ✅, Groups ✅
+- **After import-export merge**: Previous ✅, Export ✅, Import ✅, Groups integration fixed
 
 ---
 
 **Last Updated**: Currently merging feature branches into main.
-**Just Completed**: feature/task-editing-notes-groups successfully merged.
-**Next Priority**: Merge feature/data-import-export branch.
+**Just Completed**: feature/data-import-export successfully merged (with groups fix).
+**Next Priority**: Merge feature/analytics-dashboard branch.

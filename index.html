@@ -921,8 +921,13 @@
                         const existingTaskIds = new Set(AppState.tasks.map(t => t.id));
                         const newTasks = (importedData.tasks || []).filter(t => !existingTaskIds.has(t.id));
 
+                        // Merge Groups: Add new groups, skip existing ones by ID
+                        const existingGroupIds = new Set(AppState.groups.map(g => g.id));
+                        const newGroups = (importedData.groups || []).filter(g => !existingGroupIds.has(g.id));
+
                         // Update AppState
                         AppState.tasks = [...AppState.tasks, ...newTasks];
+                        AppState.groups = [...AppState.groups, ...newGroups];
                         AppState.xp = Math.max(AppState.xp || 0, importedData.xp || 0);
                         AppState.streak = Math.max(AppState.streak || 0, importedData.streak || 0);
                         AppState.settings = { ...AppState.settings, ...importedSettings };
