@@ -475,6 +475,56 @@
         .task-item {
             animation: slideIn 0.3s ease;
         }
+
+        /* Settings Modal */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -567,7 +617,89 @@
     <!-- Confetti Canvas -->
     <canvas id="confetti-canvas"></canvas>
 
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="closeSettingsBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Notifications</h3>
+                    <div class="setting-item">
+                        <label for="notificationsEnabled">Enable Notifications</label>
+                        <input type="checkbox" id="notificationsEnabled" disabled>
+                    </div>
+                    <div class="setting-item">
+                        <button id="requestNotificationPermissionBtn">Request Permission</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ==================== Notification Scheduler ====================
+        const NotificationScheduler = (function() {
+            'use strict';
+
+            let notificationTimeouts = [];
+
+            function scheduleNotifications(tasks, settings) {
+                // Clear any existing scheduled notifications
+                notificationTimeouts.forEach(clearTimeout);
+                notificationTimeouts = [];
+
+                if (!settings.notifications.enabled || !settings.notifications.permissionGranted) {
+                    return;
+                }
+
+                const openTasks = tasks.filter(t => !t.completedAt);
+                if (openTasks.length === 0) {
+                    return; // Don't schedule if no open tasks
+                }
+
+                const now = new Date();
+                const scheduleTimes = [
+                    { hour: 8, minute: 30, message: "Time to plan your day! You have open tasks." },
+                    { hour: 12, minute: 0, message: "Midday check-in! How are your tasks going?" },
+                    { hour: 15, minute: 0, message: "Time to wrap up. You still have open tasks." }
+                ];
+
+                for (const time of scheduleTimes) {
+                    let notificationTime = new Date();
+                    notificationTime.setHours(time.hour, time.minute, 0, 0);
+
+                    if (notificationTime <= now) {
+                        // If time has passed for today, schedule for tomorrow
+                        notificationTime.setDate(notificationTime.getDate() + 1);
+                    }
+
+                    const delay = notificationTime.getTime() - now.getTime();
+
+                    const timeoutId = setTimeout(() => {
+                        navigator.serviceWorker.ready.then(registration => {
+                            registration.showNotification('Daily_Tracker', {
+                                body: time.message,
+                                icon: 'assets/icons/icon-192x192.png',
+                                tag: 'daily-tracker-notification-' + time.hour
+                            });
+                        });
+                    }, delay);
+                    notificationTimeouts.push(timeoutId);
+                }
+            }
+
+            function init(tasks, settings) {
+                scheduleNotifications(tasks, settings);
+            }
+
+            return {
+                init: init
+            };
+        })();
+
         // Daily_Tracker Core Application
         (function() {
             'use strict';
@@ -585,7 +717,11 @@
                     soundEnabled: true,
                     soundVolume: 0.4,
                     sortMode: 'auto',
-                    showCompletedAtBottom: true
+                    showCompletedAtBottom: true,
+                    notifications: {
+                        enabled: false,
+                        permissionGranted: false
+                    }
                 },
                 currentDate: new Date().toISOString().split('T')[0],
                 xp: 0,
@@ -655,6 +791,7 @@
                 
                 AppState.tasks.push(task);
                 saveToStorage();
+                NotificationScheduler.init(AppState.tasks, AppState.settings);
                 return task;
             }
 
@@ -671,6 +808,7 @@
                         showConfetti();
                     }
                     saveToStorage();
+                    NotificationScheduler.init(AppState.tasks, AppState.settings);
                     renderTasks();
                 }
             }
@@ -684,6 +822,7 @@
                     }
                     AppState.tasks.splice(taskIndex, 1);
                     saveToStorage();
+                    NotificationScheduler.init(AppState.tasks, AppState.settings);
                     renderTasks();
                 }
             }
@@ -776,6 +915,16 @@
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
+            }
+
+            function updateNotificationSettingsUI() {
+                const permissionGranted = AppState.settings.notifications.permissionGranted;
+                const notificationsEnabledCheckbox = document.getElementById('notificationsEnabled');
+                const requestPermissionBtn = document.getElementById('requestNotificationPermissionBtn');
+
+                notificationsEnabledCheckbox.disabled = !permissionGranted;
+                notificationsEnabledCheckbox.checked = permissionGranted && AppState.settings.notifications.enabled;
+                requestPermissionBtn.style.display = permissionGranted ? 'none' : 'block';
             }
 
             // ==================== Drag and Drop ====================
@@ -927,9 +1076,28 @@
                     renderTasks();
                 });
 
-                // Settings button (placeholder)
+                // Settings button
                 document.getElementById('settingsBtn').addEventListener('click', function() {
-                    alert('Settings panel coming soon! 🚀');
+                    document.getElementById('settingsModal').style.display = 'flex';
+                });
+
+                document.getElementById('closeSettingsBtn').addEventListener('click', function() {
+                    document.getElementById('settingsModal').style.display = 'none';
+                });
+
+                // Notification permission
+                document.getElementById('requestNotificationPermissionBtn').addEventListener('click', function() {
+                    Notification.requestPermission().then(permission => {
+                        AppState.settings.notifications.permissionGranted = permission === 'granted';
+                        saveToStorage();
+                        updateNotificationSettingsUI();
+                    });
+                });
+
+                document.getElementById('notificationsEnabled').addEventListener('change', function() {
+                    AppState.settings.notifications.enabled = this.checked;
+                    saveToStorage();
+                    NotificationScheduler.init(AppState.tasks, AppState.settings);
                 });
 
                 // Keyboard shortcuts
@@ -974,6 +1142,9 @@
                 if (AppState.settings.theme === 'dark') {
                     document.body.setAttribute('data-theme', 'dark');
                 }
+
+                updateNotificationSettingsUI();
+                NotificationScheduler.init(AppState.tasks, AppState.settings);
                 
                 // Make functions globally available for onclick handlers
                 window.toggleTaskComplete = toggleTaskComplete;
