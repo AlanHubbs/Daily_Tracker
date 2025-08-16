@@ -525,6 +525,86 @@
             cursor: pointer;
         }
 
+        /* Settings Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .modal-body {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .settings-section {
+            margin-bottom: 25px;
+        }
+
+        .settings-section h3 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .setting-item {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-item label {
+            flex: 1;
+        }
+
+        .setting-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .setting-item button {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .setting-item button:hover {
+            background: var(--primary-dark);
+        }
+
         /* Analytics Dashboard */
         .analytics-dashboard {
             background: var(--bg-secondary);
@@ -989,6 +1069,42 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="closeSettingsBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Notifications</h3>
+                    <div class="setting-item">
+                        <label for="notificationsEnabled">Enable Notifications</label>
+                        <input type="checkbox" id="notificationsEnabled" disabled>
+                    </div>
+                    <div class="setting-item">
+                        <button id="requestNotificationPermissionBtn">Request Permission</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Sound</h3>
+                    <div class="setting-item">
+                        <label for="soundEnabled">Enable Sound Effects</label>
+                        <input type="checkbox" id="soundEnabled" checked>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Theme</h3>
+                    <div class="setting-item">
+                        <label for="themeToggle">Dark Mode</label>
+                        <input type="checkbox" id="themeToggle">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==================== Analytics Module ====================
         const Analytics = (function() {
@@ -1110,6 +1226,66 @@
             };
         })();
 
+        // ==================== Notification Scheduler ====================
+        const NotificationScheduler = (function() {
+            'use strict';
+
+            let notificationTimeouts = [];
+
+            function scheduleNotifications(tasks, settings) {
+                // Clear any existing scheduled notifications
+                notificationTimeouts.forEach(clearTimeout);
+                notificationTimeouts = [];
+
+                if (!settings.notifications || !settings.notifications.enabled || !settings.notifications.permissionGranted) {
+                    return;
+                }
+
+                const openTasks = tasks.filter(t => !t.completedAt);
+                if (openTasks.length === 0) {
+                    return; // Don't schedule if no open tasks
+                }
+
+                const now = new Date();
+                const scheduleTimes = [
+                    { hour: 8, minute: 30, message: "Time to plan your day! You have open tasks." },
+                    { hour: 12, minute: 0, message: "Midday check-in! How are your tasks going?" },
+                    { hour: 15, minute: 0, message: "Time to wrap up. You still have open tasks." }
+                ];
+
+                for (const time of scheduleTimes) {
+                    let notificationTime = new Date();
+                    notificationTime.setHours(time.hour, time.minute, 0, 0);
+
+                    if (notificationTime <= now) {
+                        // If time has passed for today, schedule for tomorrow
+                        notificationTime.setDate(notificationTime.getDate() + 1);
+                    }
+
+                    const delay = notificationTime.getTime() - now.getTime();
+
+                    const timeoutId = setTimeout(() => {
+                        navigator.serviceWorker.ready.then(registration => {
+                            registration.showNotification('Daily_Tracker', {
+                                body: time.message,
+                                icon: 'assets/icons/icon-192x192.png',
+                                tag: 'daily-tracker-notification-' + time.hour
+                            });
+                        });
+                    }, delay);
+                    notificationTimeouts.push(timeoutId);
+                }
+            }
+
+            function init(tasks, settings) {
+                scheduleNotifications(tasks, settings);
+            }
+
+            return {
+                init: init
+            };
+        })();
+
         // Daily_Tracker Core Application
         (function() {
             'use strict';
@@ -1130,7 +1306,11 @@
                     soundEnabled: true,
                     soundVolume: 0.4,
                     sortMode: 'auto',
-                    showCompletedAtBottom: true
+                    showCompletedAtBottom: true,
+                    notifications: {
+                        enabled: false,
+                        permissionGranted: false
+                    }
                 },
                 currentDate: new Date().toISOString().split('T')[0],
                 xp: 0,
@@ -1286,6 +1466,7 @@
                 AppState.tasks.push(task);
                 saveToStorage();
                 Analytics.processData(AppState.tasks);
+                NotificationScheduler.init(AppState.tasks, AppState.settings);
                 return task;
             }
 
@@ -1303,6 +1484,7 @@
                     }
                     saveToStorage();
                     Analytics.processData(AppState.tasks);
+                    NotificationScheduler.init(AppState.tasks, AppState.settings);
                     renderTasks();
                     if (document.getElementById('analyticsDashboard').style.display !== 'none') {
                         renderAnalytics();
@@ -1329,6 +1511,7 @@
                     AppState.tasks.splice(taskIndex, 1);
                     saveToStorage();
                     Analytics.processData(AppState.tasks);
+                    NotificationScheduler.init(AppState.tasks, AppState.settings);
                     renderTasks();
                     if (document.getElementById('analyticsDashboard').style.display !== 'none') {
                         renderAnalytics();
@@ -1420,6 +1603,30 @@
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
+            }
+
+            function updateNotificationSettingsUI() {
+                const permissionGranted = AppState.settings.notifications.permissionGranted;
+                const notificationsEnabledCheckbox = document.getElementById('notificationsEnabled');
+                const requestPermissionBtn = document.getElementById('requestNotificationPermissionBtn');
+
+                if (notificationsEnabledCheckbox && requestPermissionBtn) {
+                    notificationsEnabledCheckbox.disabled = !permissionGranted;
+                    notificationsEnabledCheckbox.checked = permissionGranted && AppState.settings.notifications.enabled;
+                    requestPermissionBtn.style.display = permissionGranted ? 'none' : 'block';
+                }
+
+                // Update sound checkbox
+                const soundCheckbox = document.getElementById('soundEnabled');
+                if (soundCheckbox) {
+                    soundCheckbox.checked = AppState.settings.soundEnabled;
+                }
+
+                // Update theme checkbox
+                const themeCheckbox = document.getElementById('themeToggle');
+                if (themeCheckbox) {
+                    themeCheckbox.checked = AppState.settings.theme === 'dark';
+                }
             }
 
             function enableTaskTitleEditing(titleElement, taskId) {
@@ -1877,9 +2084,49 @@
                     }
                 });
 
-                // Settings button (placeholder)
+                // Settings button
                 document.getElementById('settingsBtn').addEventListener('click', function() {
-                    alert('Settings panel coming soon! 🚀');
+                    document.getElementById('settingsModal').classList.add('show');
+                    updateNotificationSettingsUI();
+                });
+
+                document.getElementById('closeSettingsBtn').addEventListener('click', function() {
+                    document.getElementById('settingsModal').classList.remove('show');
+                });
+
+                // Notification settings
+                document.getElementById('requestNotificationPermissionBtn').addEventListener('click', function() {
+                    if ('Notification' in window) {
+                        Notification.requestPermission().then(permission => {
+                            if (permission === 'granted') {
+                                AppState.settings.notifications.permissionGranted = true;
+                                AppState.settings.notifications.enabled = true;
+                                saveToStorage();
+                                updateNotificationSettingsUI();
+                                NotificationScheduler.init(AppState.tasks, AppState.settings);
+                            }
+                        });
+                    }
+                });
+
+                document.getElementById('notificationsEnabled').addEventListener('change', function() {
+                    AppState.settings.notifications.enabled = this.checked;
+                    saveToStorage();
+                    NotificationScheduler.init(AppState.tasks, AppState.settings);
+                });
+
+                // Sound settings
+                document.getElementById('soundEnabled').addEventListener('change', function() {
+                    AppState.settings.soundEnabled = this.checked;
+                    saveToStorage();
+                });
+
+                // Theme settings
+                document.getElementById('themeToggle').addEventListener('change', function() {
+                    const theme = this.checked ? 'dark' : 'light';
+                    AppState.settings.theme = theme;
+                    document.body.setAttribute('data-theme', theme);
+                    saveToStorage();
                 });
 
                 // Notes Modal Listeners
@@ -1965,6 +2212,16 @@
                 // Apply saved theme
                 if (AppState.settings.theme === 'dark') {
                     document.body.setAttribute('data-theme', 'dark');
+                }
+
+                // Initialize notifications
+                updateNotificationSettingsUI();
+                NotificationScheduler.init(AppState.tasks, AppState.settings);
+
+                // Check notification permission on load
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    AppState.settings.notifications.permissionGranted = true;
+                    saveToStorage();
                 }
                 
                 // Make functions globally available for onclick handlers
