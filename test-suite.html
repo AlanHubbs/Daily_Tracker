@@ -320,6 +320,25 @@ npx http-server
                     <div class="test-result"></div>
                 </div>
             </div>
+
+            <div class="test-group">
+                <h3>Recurrence Engine (if merged)</h3>
+                <div class="test-item" data-test="recurrence-create">
+                    <div class="test-status pending">-</div>
+                    <div class="test-name">Create recurrence rule</div>
+                    <div class="test-result"></div>
+                </div>
+                <div class="test-item" data-test="recurrence-daily">
+                    <div class="test-status pending">-</div>
+                    <div class="test-name">Daily rule creates tasks</div>
+                    <div class="test-result"></div>
+                </div>
+                <div class="test-item" data-test="recurrence-disable">
+                    <div class="test-status pending">-</div>
+                    <div class="test-name">Disabling rule prevents task creation</div>
+                    <div class="test-result"></div>
+                </div>
+            </div>
         </div>
         
         <!-- Feature Branch Tests -->
@@ -1011,6 +1030,121 @@ npx http-server
                 return false;
             }
         }
+
+        async function testRecurrenceCreate() {
+            updateTestStatus('recurrence-create', 'running');
+            try {
+                const data = localStorage.getItem('daily_tracker_data');
+                const parsed = data ? JSON.parse(data) : { recurrenceRules: [] };
+                const initialCount = parsed.recurrenceRules ? parsed.recurrenceRules.length : 0;
+
+                const newRule = {
+                    id: 'rule_test_' + Date.now(),
+                    name: 'Test Rule',
+                    task: { title: 'Test Recurring Task', priority: 'med' },
+                    pattern: { type: 'daily' },
+                    enabled: true
+                };
+
+                parsed.recurrenceRules = parsed.recurrenceRules || [];
+                parsed.recurrenceRules.push(newRule);
+                localStorage.setItem('daily_tracker_data', JSON.stringify(parsed));
+
+                const newData = JSON.parse(localStorage.getItem('daily_tracker_data'));
+                if (newData.recurrenceRules.length === initialCount + 1) {
+                    updateTestStatus('recurrence-create', 'passed', 'Rule created successfully');
+                    return true;
+                } else {
+                    throw new Error('Rule count mismatch');
+                }
+            } catch (e) {
+                updateTestStatus('recurrence-create', 'failed', `Error: ${e.message}`);
+                return false;
+            }
+        }
+
+        async function testRecurrenceDaily() {
+            updateTestStatus('recurrence-daily', 'running');
+            try {
+                // This test requires manipulating the app's state and re-running its logic.
+                // We'll simulate this by clearing lastRecurrenceCheck and calling the function.
+                const frame = document.getElementById('app-frame');
+                if (!frame.contentWindow || !frame.contentWindow.checkRecurrenceRules) {
+                    updateTestStatus('recurrence-daily', 'warning', 'App functions not accessible');
+                    return false;
+                }
+
+                const app = frame.contentWindow;
+
+                // Set last check to yesterday
+                app.AppState.lastRecurrenceCheck = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                const initialTaskCount = app.AppState.tasks.length;
+
+                // Run the engine
+                app.checkRecurrenceRules();
+
+                const finalTaskCount = app.AppState.tasks.length;
+                const dailyRule = app.AppState.recurrenceRules.find(r => r.pattern.type === 'daily' && r.enabled);
+
+                if (dailyRule && finalTaskCount > initialTaskCount) {
+                    updateTestStatus('recurrence-daily', 'passed', 'Daily task created');
+                    return true;
+                } else if (!dailyRule) {
+                     updateTestStatus('recurrence-daily', 'warning', 'No daily rule to test');
+                    return false;
+                }
+                else {
+                    throw new Error('Task was not created');
+                }
+            } catch (e) {
+                updateTestStatus('recurrence-daily', 'failed', `Error: ${e.message}`);
+                return false;
+            }
+        }
+
+        async function testRecurrenceDisable() {
+            updateTestStatus('recurrence-disable', 'running');
+            try {
+                const frame = document.getElementById('app-frame');
+                if (!frame.contentWindow || !frame.contentWindow.checkRecurrenceRules) {
+                    updateTestStatus('recurrence-disable', 'warning', 'App functions not accessible');
+                    return false;
+                }
+
+                const app = frame.contentWindow;
+                const ruleToDisable = app.AppState.recurrenceRules.find(r => r.pattern.type === 'daily');
+                if (!ruleToDisable) {
+                    updateTestStatus('recurrence-disable', 'warning', 'No daily rule to disable');
+                    return false;
+                }
+
+                // Disable the rule
+                ruleToDisable.enabled = false;
+                app.saveToStorage();
+
+                // Set last check to yesterday and check again
+                app.AppState.lastRecurrenceCheck = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                const initialTaskCount = app.AppState.tasks.length;
+
+                app.checkRecurrenceRules();
+
+                const finalTaskCount = app.AppState.tasks.length;
+
+                if (finalTaskCount === initialTaskCount) {
+                    updateTestStatus('recurrence-disable', 'passed', 'Disabled rule did not create task');
+                    // Re-enable for other tests
+                    ruleToDisable.enabled = true;
+                    app.saveToStorage();
+                    return true;
+                } else {
+                    throw new Error('Task was created by disabled rule');
+                }
+
+            } catch (e) {
+                updateTestStatus('recurrence-disable', 'failed', `Error: ${e.message}`);
+                return false;
+            }
+        }
         
         // UI/UX Tests
         async function testUIResponsive() {
@@ -1191,6 +1325,9 @@ npx http-server
             await testNotificationSchedule();
             await testAchievementSystem();
             await testAchievementToast();
+            await testRecurrenceCreate();
+            await testRecurrenceDaily();
+            await testRecurrenceDisable();
             
             // UI/UX tests
             await testUIResponsive();
