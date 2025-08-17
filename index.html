@@ -1187,36 +1187,77 @@
                 <h2>Settings</h2>
                 <button id="closeSettingsBtn" class="close-btn">&times;</button>
             </div>
+            <div class="modal-tabs">
+                <button class="modal-tab-btn active" data-tab="general">General</button>
+                <button class="modal-tab-btn" data-tab="achievements">Achievements</button>
+                <button class="modal-tab-btn" data-tab="recurrence">Recurrence</button>
+            </div>
             <div class="modal-body">
-                <div class="settings-section">
-                    <h3>Notifications</h3>
-                    <div class="setting-item">
-                        <label for="notificationsEnabled">Enable Notifications</label>
-                        <input type="checkbox" id="notificationsEnabled" disabled>
+                <div class="modal-tab-content active" id="generalTab">
+                    <div class="settings-section">
+                        <h3>Notifications</h3>
+                        <div class="setting-item">
+                            <label for="notificationsEnabled">Enable Notifications</label>
+                            <input type="checkbox" id="notificationsEnabled" disabled>
+                        </div>
+                        <div class="setting-item">
+                            <button id="requestNotificationPermissionBtn">Request Permission</button>
+                        </div>
                     </div>
-                    <div class="setting-item">
-                        <button id="requestNotificationPermissionBtn">Request Permission</button>
+                    <div class="settings-section">
+                        <h3>Sound</h3>
+                        <div class="setting-item">
+                            <label for="soundEnabled">Enable Sound Effects</label>
+                            <input type="checkbox" id="soundEnabled" checked>
+                        </div>
                     </div>
-                </div>
-                <div class="settings-section">
-                    <h3>Sound</h3>
-                    <div class="setting-item">
-                        <label for="soundEnabled">Enable Sound Effects</label>
-                        <input type="checkbox" id="soundEnabled" checked>
+                    <div class="settings-section">
+                        <h3>Theme</h3>
+                        <div class="setting-item">
+                            <label for="themeToggle">Dark Mode</label>
+                            <input type="checkbox" id="themeToggle">
+                        </div>
                     </div>
-                </div>
-                <div class="settings-section">
-                    <h3>Theme</h3>
-                    <div class="setting-item">
-                        <label for="themeToggle">Dark Mode</label>
-                        <input type="checkbox" id="themeToggle">
-                    </div>
-                </div>
                 </div>
                 <div class="modal-tab-content" id="achievementsTab">
                     <h3>Your Achievements</h3>
                     <div class="achievements-grid" id="achievementsGrid">
                         <!-- Achievements will be rendered here by JS -->
+                    </div>
+                </div>
+                <div class="modal-tab-content" id="recurrenceTab">
+                    <h3>Recurring Tasks</h3>
+                    <div id="recurrenceRuleList"></div>
+                    <div class="settings-section">
+                        <h4>Create New Rule</h4>
+                        <div class="create-group-form">
+                             <input type="text" id="newRecurrenceRuleName" class="task-input" placeholder="Rule name (e.g., 'Daily Standup')">
+                        </div>
+                        <div class="create-group-form" style="margin-top: 10px;">
+                            <input type="text" id="newRecurrenceTaskTitle" class="task-input" placeholder="Task title (e.g., 'Attend standup')">
+                            <select id="newRecurrenceTaskPriority" class="priority-selector">
+                                <option value="low">Low</option>
+                                <option value="med">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="create-group-form" style="margin-top: 10px;">
+                            <select id="newRecurrenceType" class="priority-selector">
+                                <option value="daily">Daily</option>
+                                <option value="weekdays">Weekdays</option>
+                                <option value="weekly">Weekly (on selected days)</option>
+                            </select>
+                        </div>
+                        <div id="weeklyDaySelector" style="display: none; margin-top: 10px;">
+                            <label><input type="checkbox" value="0"> Sun</label>
+                            <label><input type="checkbox" value="1"> Mon</label>
+                            <label><input type="checkbox" value="2"> Tue</label>
+                            <label><input type="checkbox" value="3"> Wed</label>
+                            <label><input type="checkbox" value="4"> Thu</label>
+                            <label><input type="checkbox" value="5"> Fri</label>
+                            <label><input type="checkbox" value="6"> Sat</label>
+                        </div>
+                        <button id="createRecurrenceRuleBtn" class="add-task-btn" style="margin-top: 15px;">Create Rule</button>
                     </div>
                 </div>
             </div>
@@ -1419,6 +1460,7 @@
             const AppState = {
                 tasks: [],
                 groups: [],
+                recurrenceRules: [],
                 settings: {
                     theme: 'light',
                     soundEnabled: true,
@@ -1435,6 +1477,7 @@
                 streak: 0,
                 consecutiveDayStreak: 0,
                 lastCompletedDate: null,
+                lastRecurrenceCheck: null,
                 achievements: []
             };
 
@@ -1458,10 +1501,12 @@
                         version: VERSION,
                         tasks: AppState.tasks,
                         groups: AppState.groups,
+                        recurrenceRules: AppState.recurrenceRules,
                         xp: AppState.xp,
                         streak: AppState.streak,
                         consecutiveDayStreak: AppState.consecutiveDayStreak,
                         lastCompletedDate: AppState.lastCompletedDate,
+                        lastRecurrenceCheck: AppState.lastRecurrenceCheck,
                         achievements: AppState.achievements,
                         lastUpdate: Date.now()
                     }));
@@ -1480,10 +1525,12 @@
                         const parsed = JSON.parse(data);
                         AppState.tasks = parsed.tasks || [];
                         AppState.groups = parsed.groups || [];
+                        AppState.recurrenceRules = parsed.recurrenceRules || [];
                         AppState.xp = parsed.xp || 0;
                         AppState.streak = parsed.streak || 0;
                         AppState.consecutiveDayStreak = parsed.consecutiveDayStreak || 0;
                         AppState.lastCompletedDate = parsed.lastCompletedDate || null;
+                        AppState.lastRecurrenceCheck = parsed.lastRecurrenceCheck || null;
                         AppState.achievements = parsed.achievements || [];
                     }
                     
@@ -1553,9 +1600,14 @@
                         const existingGroupIds = new Set(AppState.groups.map(g => g.id));
                         const newGroups = (importedData.groups || []).filter(g => !existingGroupIds.has(g.id));
 
+                        // Merge Recurrence Rules: Add new rules, skip existing ones by ID
+                        const existingRuleIds = new Set(AppState.recurrenceRules.map(r => r.id));
+                        const newRules = (importedData.recurrenceRules || []).filter(r => !existingRuleIds.has(r.id));
+
                         // Update AppState
                         AppState.tasks = [...AppState.tasks, ...newTasks];
                         AppState.groups = [...AppState.groups, ...newGroups];
+                        AppState.recurrenceRules = [...AppState.recurrenceRules, ...newRules];
                         AppState.xp = Math.max(AppState.xp || 0, importedData.xp || 0);
                         AppState.streak = Math.max(AppState.streak || 0, importedData.streak || 0);
                         AppState.settings = { ...AppState.settings, ...importedSettings };
@@ -2029,6 +2081,129 @@
                 }
             }
 
+            // ==================== Recurrence Management ====================
+            function renderRecurrenceRules() {
+                const container = document.getElementById('recurrenceRuleList');
+                if (AppState.recurrenceRules.length === 0) {
+                    container.innerHTML = `<div class="empty-state-small">No recurrence rules yet.</div>`;
+                    return;
+                }
+                container.innerHTML = AppState.recurrenceRules.map(rule => `
+                    <div class="setting-item">
+                        <label for="toggle-${rule.id}">${escapeHtml(rule.name)}</label>
+                        <input type="checkbox" id="toggle-${rule.id}" onchange="toggleRecurrenceRule('${rule.id}')" ${rule.enabled ? 'checked' : ''}>
+                        <button class="delete-btn" onclick="deleteRecurrenceRule('${rule.id}')">🗑️</button>
+                    </div>
+                `).join('');
+            }
+
+            function createRecurrenceRule() {
+                const nameInput = document.getElementById('newRecurrenceRuleName');
+                const taskTitleInput = document.getElementById('newRecurrenceTaskTitle');
+                const priority = document.getElementById('newRecurrenceTaskPriority').value;
+                const type = document.getElementById('newRecurrenceType').value;
+
+                const name = nameInput.value.trim();
+                const taskTitle = taskTitleInput.value.trim();
+
+                if (!name || !taskTitle) {
+                    alert('Please provide a rule name and a task title.');
+                    return;
+                }
+
+                const pattern = { type };
+                if (type === 'weekly') {
+                    pattern.days = [...document.querySelectorAll('#weeklyDaySelector input:checked')].map(cb => parseInt(cb.value));
+                    if (pattern.days.length === 0) {
+                        alert('Please select at least one day for weekly recurrence.');
+                        return;
+                    }
+                }
+
+                const newRule = {
+                    id: 'rule_' + Date.now(),
+                    name: name,
+                    task: {
+                        title: taskTitle,
+                        priority: priority,
+                    },
+                    pattern: pattern,
+                    enabled: true
+                };
+
+                AppState.recurrenceRules.push(newRule);
+                saveToStorage();
+                renderRecurrenceRules();
+
+                // Clear inputs
+                nameInput.value = '';
+                taskTitleInput.value = '';
+            }
+
+            function toggleRecurrenceRule(ruleId) {
+                const rule = AppState.recurrenceRules.find(r => r.id === ruleId);
+                if (rule) {
+                    rule.enabled = !rule.enabled;
+                    saveToStorage();
+                }
+            }
+
+            function deleteRecurrenceRule(ruleId) {
+                if (confirm('Are you sure you want to delete this recurrence rule?')) {
+                    AppState.recurrenceRules = AppState.recurrenceRules.filter(r => r.id !== ruleId);
+                    saveToStorage();
+                    renderRecurrenceRules();
+                }
+            }
+
+            // ==================== Recurrence Engine ====================
+            function checkRecurrenceRules() {
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+
+                // Avoid running multiple times a day
+                if (AppState.lastRecurrenceCheck === todayStr) {
+                    return;
+                }
+
+                let lastCheckDate = AppState.lastRecurrenceCheck ? new Date(AppState.lastRecurrenceCheck) : new Date(today.getTime() - 86400000); // Default to yesterday
+
+                // Loop through each day from the last check until today
+                for (let d = new Date(lastCheckDate.getTime() + 86400000); d <= today; d.setDate(d.getDate() + 1)) {
+                    const dayOfWeek = d.getDay(); // 0=Sun, 1=Mon, ...
+
+                    AppState.recurrenceRules.forEach(rule => {
+                        if (!rule.enabled) return;
+
+                        let shouldCreateTask = false;
+                        switch (rule.pattern.type) {
+                            case 'daily':
+                                shouldCreateTask = true;
+                                break;
+                            case 'weekdays':
+                                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                                    shouldCreateTask = true;
+                                }
+                                break;
+                            case 'weekly':
+                                if (rule.pattern.days.includes(dayOfWeek)) {
+                                    shouldCreateTask = true;
+                                }
+                                break;
+                        }
+
+                        if (shouldCreateTask) {
+                            const task = createTask(rule.task.title, rule.task.priority);
+                            task.dateAssigned = d.toISOString().split('T')[0];
+                        }
+                    });
+                }
+
+                AppState.lastRecurrenceCheck = todayStr;
+                saveToStorage();
+                renderTasks(); // Re-render tasks in case any were added for today
+            }
+
             // ==================== Drag and Drop ====================
             function initDragAndDrop() {
                 const items = document.querySelectorAll('.task-item');
@@ -2217,10 +2392,28 @@
                 document.getElementById('settingsBtn').addEventListener('click', function() {
                     document.getElementById('settingsModal').classList.add('show');
                     updateNotificationSettingsUI();
+                    renderRecurrenceRules();
                 });
 
                 document.getElementById('closeSettingsBtn').addEventListener('click', function() {
                     document.getElementById('settingsModal').classList.remove('show');
+                });
+
+                // Settings modal tabs
+                document.querySelector('.modal-tabs').addEventListener('click', function(e) {
+                    if (e.target.classList.contains('modal-tab-btn')) {
+                        const tab = e.target.dataset.tab;
+
+                        // Update button active state
+                        document.querySelectorAll('.modal-tab-btn').forEach(btn => btn.classList.remove('active'));
+                        e.target.classList.add('active');
+
+                        // Update content active state
+                        document.querySelectorAll('.modal-tab-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        document.getElementById(tab + 'Tab').classList.add('active');
+                    }
                 });
 
                 // Notification settings
@@ -2298,6 +2491,17 @@
                     }
                 });
 
+                // Recurrence UI listeners
+                document.getElementById('createRecurrenceRuleBtn').addEventListener('click', createRecurrenceRule);
+                document.getElementById('newRecurrenceType').addEventListener('change', function(e) {
+                    const weeklySelector = document.getElementById('weeklyDaySelector');
+                    if (e.target.value === 'weekly') {
+                        weeklySelector.style.display = 'block';
+                    } else {
+                        weeklySelector.style.display = 'none';
+                    }
+                });
+
                 // Keyboard shortcuts
                 document.addEventListener('keydown', function(e) {
                     // N - New task
@@ -2330,6 +2534,7 @@
             // ==================== Initialization ====================
             function init() {
                 loadFromStorage();
+                checkRecurrenceRules();
                 Analytics.processData(AppState.tasks);
                 renderTasks();
                 renderGroups();
@@ -2358,6 +2563,8 @@
                 window.deleteTask = deleteTask;
                 window.openNotesModal = openNotesModal;
                 window.addTasksFromGroup = addTasksFromGroup;
+                window.toggleRecurrenceRule = toggleRecurrenceRule;
+                window.deleteRecurrenceRule = deleteRecurrenceRule;
             }
 
             // Start the app
