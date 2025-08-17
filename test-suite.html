@@ -339,6 +339,25 @@ npx http-server
                     <div class="test-result"></div>
                 </div>
             </div>
+
+            <div class="test-group">
+                <h3>Pomodoro Timer (if merged)</h3>
+                <div class="test-item" data-test="pomodoro-start-pause">
+                    <div class="test-status pending">-</div>
+                    <div class="test-name">Start and pause timer</div>
+                    <div class="test-result"></div>
+                </div>
+                <div class="test-item" data-test="pomodoro-reset">
+                    <div class="test-status pending">-</div>
+                    <div class="test-name">Reset timer</div>
+                    <div class="test-result"></div>
+                </div>
+                <div class="test-item" data-test="pomodoro-session-switch">
+                    <div class="test-status pending">-</div>
+                    <div class="test-name">Session switching</div>
+                    <div class="test-result"></div>
+                </div>
+            </div>
         </div>
         
         <!-- Feature Branch Tests -->
@@ -1145,6 +1164,95 @@ npx http-server
                 return false;
             }
         }
+
+        async function testPomodoroStartPause() {
+            updateTestStatus('pomodoro-start-pause', 'running');
+            try {
+                const frame = document.getElementById('app-frame');
+                if (!frame.contentWindow || !frame.contentWindow.startPausePomodoro) {
+                    updateTestStatus('pomodoro-start-pause', 'warning', 'App functions not accessible');
+                    return false;
+                }
+
+                const app = frame.contentWindow;
+                app.startPausePomodoro(); // Start
+                if (app.AppState.timerState.isActive) {
+                    app.startPausePomodoro(); // Pause
+                    if (!app.AppState.timerState.isActive) {
+                        updateTestStatus('pomodoro-start-pause', 'passed', 'Start/pause toggle works');
+                        return true;
+                    }
+                }
+                throw new Error('Timer state did not toggle correctly');
+            } catch (e) {
+                updateTestStatus('pomodoro-start-pause', 'failed', `Error: ${e.message}`);
+                return false;
+            }
+        }
+
+        async function testPomodoroReset() {
+            updateTestStatus('pomodoro-reset', 'running');
+            try {
+                const frame = document.getElementById('app-frame');
+                if (!frame.contentWindow || !frame.contentWindow.resetPomodoro) {
+                    updateTestStatus('pomodoro-reset', 'warning', 'App functions not accessible');
+                    return false;
+                }
+
+                const app = frame.contentWindow;
+                app.AppState.timerState.timeLeft = 10; // Change time to check reset
+                app.resetPomodoro();
+
+                const expectedTime = app.AppState.settings.pomodoro.workDuration * 60;
+                if (app.AppState.timerState.timeLeft === expectedTime) {
+                    updateTestStatus('pomodoro-reset', 'passed', 'Timer reset correctly');
+                    return true;
+                } else {
+                    throw new Error('Timer did not reset to default time');
+                }
+            } catch (e) {
+                updateTestStatus('pomodoro-reset', 'failed', `Error: ${e.message}`);
+                return false;
+            }
+        }
+
+        async function testPomodoroSessionSwitch() {
+            updateTestStatus('pomodoro-session-switch', 'running');
+            try {
+                const frame = document.getElementById('app-frame');
+                if (!frame.contentWindow || !frame.contentWindow.changePomodoroSession) {
+                    updateTestStatus('pomodoro-session-switch', 'warning', 'App functions not accessible');
+                    return false;
+                }
+
+                const app = frame.contentWindow;
+                app.AppState.timerState.mode = 'work';
+                app.changePomodoroSession(); // Switch to short break
+                if (app.AppState.timerState.mode !== 'shortBreak') {
+                    throw new Error('Did not switch from work to short break');
+                }
+
+                app.AppState.timerState.mode = 'shortBreak';
+                app.changePomodoroSession(); // Switch to work
+                if (app.AppState.timerState.mode !== 'work') {
+                    throw new Error('Did not switch from short break to work');
+                }
+
+                app.AppState.timerState.sessions = 3; // To trigger long break
+                app.AppState.timerState.mode = 'work';
+                app.changePomodoroSession(); // Switch to long break
+                if (app.AppState.timerState.mode !== 'longBreak') {
+                    throw new Error('Did not switch from work to long break');
+                }
+
+                updateTestStatus('pomodoro-session-switch', 'passed', 'Session switching logic is correct');
+                return true;
+
+            } catch (e) {
+                updateTestStatus('pomodoro-session-switch', 'failed', `Error: ${e.message}`);
+                return false;
+            }
+        }
         
         // UI/UX Tests
         async function testUIResponsive() {
@@ -1328,6 +1436,9 @@ npx http-server
             await testRecurrenceCreate();
             await testRecurrenceDaily();
             await testRecurrenceDisable();
+            await testPomodoroStartPause();
+            await testPomodoroReset();
+            await testPomodoroSessionSwitch();
             
             // UI/UX tests
             await testUIResponsive();

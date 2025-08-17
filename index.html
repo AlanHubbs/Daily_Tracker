@@ -1037,6 +1037,7 @@
                 <button class="settings-btn" id="importBtn" title="Import Data" aria-label="Import Data">📥</button>
                 <input type="file" id="importFile" accept=".json" style="display: none;">
                 <button class="settings-btn" id="analyticsBtn" aria-label="Analytics" title="Analytics">📊</button>
+                <button class="settings-btn" id="pomodoroBtn" aria-label="Pomodoro Timer" title="Pomodoro Timer">⏱️</button>
                 <button class="settings-btn" id="settingsBtn" aria-label="Settings">⚙️</button>
             </div>
         </header>
@@ -1191,6 +1192,7 @@
                 <button class="modal-tab-btn active" data-tab="general">General</button>
                 <button class="modal-tab-btn" data-tab="achievements">Achievements</button>
                 <button class="modal-tab-btn" data-tab="recurrence">Recurrence</button>
+                <button class="modal-tab-btn" data-tab="pomodoro">Pomodoro</button>
             </div>
             <div class="modal-body">
                 <div class="modal-tab-content active" id="generalTab">
@@ -1259,6 +1261,41 @@
                         </div>
                         <button id="createRecurrenceRuleBtn" class="add-task-btn" style="margin-top: 15px;">Create Rule</button>
                     </div>
+                </div>
+                <div class="modal-tab-content" id="pomodoroTab">
+                    <h3>Pomodoro Timer Settings</h3>
+                    <div class="settings-section">
+                        <div class="setting-item">
+                            <label for="pomodoroWorkDuration">Work Duration (minutes)</label>
+                            <input type="number" id="pomodoroWorkDuration" min="1" max="90" style="width: 60px;">
+                        </div>
+                        <div class="setting-item">
+                            <label for="pomodoroShortBreak">Short Break (minutes)</label>
+                            <input type="number" id="pomodoroShortBreak" min="1" max="30" style="width: 60px;">
+                        </div>
+                        <div class="setting-item">
+                            <label for="pomodoroLongBreak">Long Break (minutes)</label>
+                            <input type="number" id="pomodoroLongBreak" min="1" max="60" style="width: 60px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pomodoro Timer Widget -->
+    <div id="pomodoroWidget" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>Pomodoro Timer</h2>
+                <button id="closePomodoroBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="pomodoro-body" style="text-align: center;">
+                <div id="pomodoroTimerDisplay" style="font-size: 6rem; font-weight: bold; margin: 20px 0;">25:00</div>
+                <div id="pomodoroSessionIndicator" style="font-size: 1.2rem; margin-bottom: 20px; font-weight: 500;">Work Session</div>
+                <div class="pomodoro-controls" style="display: flex; justify-content: center; gap: 10px;">
+                    <button id="pomodoroStartPauseBtn" class="add-task-btn">Start</button>
+                    <button id="pomodoroResetBtn" class="add-task-btn" style="background: var(--bg-tertiary); color: var(--text-primary);">Reset</button>
                 </div>
             </div>
         </div>
@@ -1470,7 +1507,19 @@
                     notifications: {
                         enabled: false,
                         permissionGranted: false
+                    },
+                    pomodoro: {
+                        workDuration: 25,
+                        shortBreak: 5,
+                        longBreak: 15
                     }
+                },
+                timerState: {
+                    isActive: false,
+                    mode: 'work', // 'work', 'shortBreak', 'longBreak'
+                    timeLeft: 25 * 60, // in seconds
+                    intervalId: null,
+                    sessions: 0 // number of completed work sessions
                 },
                 currentDate: new Date().toISOString().split('T')[0],
                 xp: 0,
@@ -1535,7 +1584,11 @@
                     }
                     
                     if (settings) {
-                        AppState.settings = { ...AppState.settings, ...JSON.parse(settings) };
+                        const loadedSettings = JSON.parse(settings);
+                        // Merge pomodoro settings separately to preserve defaults
+                        const pomodoroSettings = { ...AppState.settings.pomodoro, ...(loadedSettings.pomodoro || {}) };
+                        AppState.settings = { ...AppState.settings, ...loadedSettings };
+                        AppState.settings.pomodoro = pomodoroSettings;
                     }
                 } catch (e) {
                     console.error('Failed to load from localStorage:', e);
@@ -1786,28 +1839,34 @@
                 return div.innerHTML;
             }
 
-            function updateNotificationSettingsUI() {
-                const permissionGranted = AppState.settings.notifications.permissionGranted;
+            function updateSettingsUI() {
+                const { notifications, soundEnabled, theme, pomodoro } = AppState.settings;
+                const permissionGranted = notifications.permissionGranted;
                 const notificationsEnabledCheckbox = document.getElementById('notificationsEnabled');
                 const requestPermissionBtn = document.getElementById('requestNotificationPermissionBtn');
 
                 if (notificationsEnabledCheckbox && requestPermissionBtn) {
                     notificationsEnabledCheckbox.disabled = !permissionGranted;
-                    notificationsEnabledCheckbox.checked = permissionGranted && AppState.settings.notifications.enabled;
+                    notificationsEnabledCheckbox.checked = permissionGranted && notifications.enabled;
                     requestPermissionBtn.style.display = permissionGranted ? 'none' : 'block';
                 }
 
                 // Update sound checkbox
                 const soundCheckbox = document.getElementById('soundEnabled');
                 if (soundCheckbox) {
-                    soundCheckbox.checked = AppState.settings.soundEnabled;
+                    soundCheckbox.checked = soundEnabled;
                 }
 
                 // Update theme checkbox
                 const themeCheckbox = document.getElementById('themeToggle');
                 if (themeCheckbox) {
-                    themeCheckbox.checked = AppState.settings.theme === 'dark';
+                    themeCheckbox.checked = theme === 'dark';
                 }
+
+                // Update Pomodoro settings
+                document.getElementById('pomodoroWorkDuration').value = pomodoro.workDuration;
+                document.getElementById('pomodoroShortBreak').value = pomodoro.shortBreak;
+                document.getElementById('pomodoroLongBreak').value = pomodoro.longBreak;
             }
 
             function enableTaskTitleEditing(titleElement, taskId) {
@@ -2204,6 +2263,84 @@
                 renderTasks(); // Re-render tasks in case any were added for today
             }
 
+            // ==================== Pomodoro Timer Logic ====================
+            function updatePomodoroDisplay() {
+                const { timeLeft, mode } = AppState.timerState;
+                const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                const seconds = (timeLeft % 60).toString().padStart(2, '0');
+                document.getElementById('pomodoroTimerDisplay').textContent = `${minutes}:${seconds}`;
+
+                const sessionMap = {
+                    work: 'Work Session',
+                    shortBreak: 'Short Break',
+                    longBreak: 'Long Break'
+                };
+                document.getElementById('pomodoroSessionIndicator').textContent = sessionMap[mode];
+            }
+
+            function changePomodoroSession() {
+                const { mode, sessions } = AppState.timerState;
+                const { pomodoro } = AppState.settings;
+
+                let nextMode;
+                if (mode === 'work') {
+                    AppState.timerState.sessions++;
+                    nextMode = (sessions + 1) % 4 === 0 ? 'longBreak' : 'shortBreak';
+                } else {
+                    nextMode = 'work';
+                }
+                AppState.timerState.mode = nextMode;
+
+                const durationMap = {
+                    work: pomodoro.workDuration,
+                    shortBreak: pomodoro.shortBreak,
+                    longBreak: pomodoro.longBreak
+                };
+                AppState.timerState.timeLeft = durationMap[nextMode] * 60;
+
+                updatePomodoroDisplay();
+            }
+
+            function pomodoroTick() {
+                AppState.timerState.timeLeft--;
+                updatePomodoroDisplay();
+
+                if (AppState.timerState.timeLeft <= 0) {
+                    clearInterval(AppState.timerState.intervalId);
+                    AppState.timerState.isActive = false;
+                    document.getElementById('pomodoroStartPauseBtn').textContent = 'Start';
+                    playLevelUpSound(); // Or a different sound
+                    changePomodoroSession();
+                }
+            }
+
+            function startPausePomodoro() {
+                const { timerState } = AppState;
+                timerState.isActive = !timerState.isActive;
+
+                if (timerState.isActive) {
+                    document.getElementById('pomodoroStartPauseBtn').textContent = 'Pause';
+                    timerState.intervalId = setInterval(pomodoroTick, 1000);
+                } else {
+                    document.getElementById('pomodoroStartPauseBtn').textContent = 'Start';
+                    clearInterval(timerState.intervalId);
+                }
+            }
+
+            function resetPomodoro() {
+                const { timerState, settings } = AppState;
+                clearInterval(timerState.intervalId);
+                timerState.isActive = false;
+                const durationMap = {
+                    work: settings.pomodoro.workDuration,
+                    shortBreak: settings.pomodoro.shortBreak,
+                    longBreak: settings.pomodoro.longBreak
+                };
+                timerState.timeLeft = durationMap[timerState.mode] * 60;
+                document.getElementById('pomodoroStartPauseBtn').textContent = 'Start';
+                updatePomodoroDisplay();
+            }
+
             // ==================== Drag and Drop ====================
             function initDragAndDrop() {
                 const items = document.querySelectorAll('.task-item');
@@ -2391,7 +2528,7 @@
                 // Settings button
                 document.getElementById('settingsBtn').addEventListener('click', function() {
                     document.getElementById('settingsModal').classList.add('show');
-                    updateNotificationSettingsUI();
+                    updateSettingsUI();
                     renderRecurrenceRules();
                 });
 
@@ -2424,7 +2561,7 @@
                                 AppState.settings.notifications.permissionGranted = true;
                                 AppState.settings.notifications.enabled = true;
                                 saveToStorage();
-                                updateNotificationSettingsUI();
+                                updateSettingsUI();
                                 NotificationScheduler.init(AppState.tasks, AppState.settings);
                             }
                         });
@@ -2500,6 +2637,34 @@
                     } else {
                         weeklySelector.style.display = 'none';
                     }
+                });
+
+                // Pomodoro Timer listeners
+                document.getElementById('pomodoroBtn').addEventListener('click', () => {
+                    document.getElementById('pomodoroWidget').style.display = 'flex';
+                    updatePomodoroDisplay();
+                });
+                document.getElementById('closePomodoroBtn').addEventListener('click', () => {
+                    document.getElementById('pomodoroWidget').style.display = 'none';
+                });
+                document.getElementById('pomodoroStartPauseBtn').addEventListener('click', startPausePomodoro);
+                document.getElementById('pomodoroResetBtn').addEventListener('click', resetPomodoro);
+
+                // Pomodoro settings listeners
+                document.getElementById('pomodoroWorkDuration').addEventListener('change', (e) => {
+                    AppState.settings.pomodoro.workDuration = parseInt(e.target.value, 10);
+                    saveToStorage();
+                    resetPomodoro(); // Reset timer to apply new duration
+                });
+                document.getElementById('pomodoroShortBreak').addEventListener('change', (e) => {
+                    AppState.settings.pomodoro.shortBreak = parseInt(e.target.value, 10);
+                    saveToStorage();
+                    resetPomodoro();
+                });
+                document.getElementById('pomodoroLongBreak').addEventListener('change', (e) => {
+                    AppState.settings.pomodoro.longBreak = parseInt(e.target.value, 10);
+                    saveToStorage();
+                    resetPomodoro();
                 });
 
                 // Keyboard shortcuts
