@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Tracker - Launcher</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        .launcher {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 2.5em;
+        }
+        .status {
+            font-size: 1.2em;
+            margin: 20px 0;
+            opacity: 0.9;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            background: rgba(255, 59, 48, 0.2);
+            color: #ffcccc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+        .instructions h3 {
+            margin-top: 0;
+        }
+        .instructions code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="launcher">
+        <h1>📊 Daily Tracker</h1>
+        <div class="status" id="status">Starting local server...</div>
+        <div class="spinner" id="spinner"></div>
+        
+        <div class="error" id="error">
+            <strong>⚠️ Unable to start automatically</strong>
+            <p>Please start the server manually using one of the methods below.</p>
+        </div>
+        
+        <div class="instructions" id="instructions" style="display: none;">
+            <h3>🚀 Quick Start Options:</h3>
+            <p><strong>Option 1: Python</strong></p>
+            <p>Open Terminal/Command Prompt in the Daily_Tracker folder and run:</p>
+            <p><code>python3 launch.py</code></p>
+            
+            <p style="margin-top: 20px;"><strong>Option 2: Direct Python Server</strong></p>
+            <p><code>python3 -m http.server 8080</code></p>
+            <p>Then open: <a href="http://localhost:8080" style="color: white;">http://localhost:8080</a></p>
+            
+            <p style="margin-top: 20px;"><strong>Option 3: Node.js</strong></p>
+            <p><code>node launch.js</code></p>
+            
+            <button onclick="tryManualLaunch()">Try Opening Anyway</button>
+        </div>
+    </div>
+
+    <script>
+        let attempts = 0;
+        const maxAttempts = 10;
+        const serverUrl = 'http://localhost:8080';
+        
+        // Try to detect if server is running
+        function checkServer() {
+            fetch(serverUrl, { mode: 'no-cors' })
+                .then(() => {
+                    // Server is likely running
+                    document.getElementById('status').textContent = 'Server detected! Redirecting...';
+                    setTimeout(() => {
+                        window.location.href = serverUrl;
+                    }, 1000);
+                })
+                .catch(() => {
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        // Keep trying
+                        document.getElementById('status').textContent = 
+                            `Checking for server... (attempt ${attempts}/${maxAttempts})`;
+                        setTimeout(checkServer, 2000);
+                    } else {
+                        // Show manual instructions
+                        document.getElementById('spinner').style.display = 'none';
+                        document.getElementById('status').textContent = 
+                            'Server not detected. Please start manually:';
+                        document.getElementById('instructions').style.display = 'block';
+                    }
+                });
+        }
+        
+        function tryManualLaunch() {
+            window.open(serverUrl, '_blank');
+        }
+        
+        // Start checking after page loads
+        window.addEventListener('load', () => {
+            // First, try to launch the Python script (won't work from file://, but worth trying)
+            setTimeout(checkServer, 1000);
+        });
+        
+        // Also provide keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                window.location.href = serverUrl;
+            }
+        });
+    </script>
+</body>
+</html>
