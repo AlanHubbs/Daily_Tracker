@@ -1192,6 +1192,7 @@
                 <button class="modal-tab-btn active" data-tab="general">General</button>
                 <button class="modal-tab-btn" data-tab="achievements">Achievements</button>
                 <button class="modal-tab-btn" data-tab="recurrence">Recurrence</button>
+                <button class="modal-tab-btn" data-tab="pomodoro">Pomodoro</button>
             </div>
             <div class="modal-body">
                 <div class="modal-tab-content active" id="generalTab">
@@ -1217,21 +1218,6 @@
                         <div class="setting-item">
                             <label for="themeToggle">Dark Mode</label>
                             <input type="checkbox" id="themeToggle">
-                        </div>
-                    </div>
-                    <div class="settings-section">
-                        <h3>Pomodoro Timer</h3>
-                        <div class="setting-item">
-                            <label for="pomodoroWorkDuration">Work Duration (minutes)</label>
-                            <input type="number" id="pomodoroWorkDuration" min="1" max="90" style="width: 60px;">
-                        </div>
-                        <div class="setting-item">
-                            <label for="pomodoroShortBreak">Short Break (minutes)</label>
-                            <input type="number" id="pomodoroShortBreak" min="1" max="30" style="width: 60px;">
-                        </div>
-                        <div class="setting-item">
-                            <label for="pomodoroLongBreak">Long Break (minutes)</label>
-                            <input type="number" id="pomodoroLongBreak" min="1" max="60" style="width: 60px;">
                         </div>
                     </div>
                 </div>
@@ -1274,6 +1260,23 @@
                             <label><input type="checkbox" value="6"> Sat</label>
                         </div>
                         <button id="createRecurrenceRuleBtn" class="add-task-btn" style="margin-top: 15px;">Create Rule</button>
+                    </div>
+                </div>
+                <div class="modal-tab-content" id="pomodoroTab">
+                    <h3>Pomodoro Timer Settings</h3>
+                    <div class="settings-section">
+                        <div class="setting-item">
+                            <label for="pomodoroWorkDuration">Work Duration (minutes)</label>
+                            <input type="number" id="pomodoroWorkDuration" min="1" max="90" style="width: 60px;">
+                        </div>
+                        <div class="setting-item">
+                            <label for="pomodoroShortBreak">Short Break (minutes)</label>
+                            <input type="number" id="pomodoroShortBreak" min="1" max="30" style="width: 60px;">
+                        </div>
+                        <div class="setting-item">
+                            <label for="pomodoroLongBreak">Long Break (minutes)</label>
+                            <input type="number" id="pomodoroLongBreak" min="1" max="60" style="width: 60px;">
+                        </div>
                     </div>
                 </div>
             </div>
