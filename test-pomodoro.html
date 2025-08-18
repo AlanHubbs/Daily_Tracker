@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pomodoro Feature Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 600px; 
+            margin: 0 auto;
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+        }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .running { background: #fff3cd; color: #856404; }
+        h2 { color: #333; border-bottom: 2px solid #6366f1; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🍅 Pomodoro Timer Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        let testsPassed = 0;
+        let totalTests = 0;
+        
+        function log(message, status = 'running') {
+            const div = document.createElement('div');
+            div.className = `status ${status}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        async function runTests() {
+            log('<h2>Loading Application...</h2>', '');
+            
+            // Create hidden iframe
+            const iframe = document.createElement('iframe');
+            iframe.src = 'index.html';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+            
+            await new Promise(resolve => {
+                iframe.onload = resolve;
+                setTimeout(resolve, 3000);
+            });
+            
+            const win = iframe.contentWindow;
+            const doc = iframe.contentDocument;
+            
+            log('<h2>Running Pomodoro Tests...</h2>', '');
+            
+            // Test 1: UI Elements Exist
+            totalTests++;
+            const pomodoroBtn = doc.getElementById('pomodoroBtn');
+            const pomodoroWidget = doc.getElementById('pomodoroWidget');
+            
+            if (pomodoroBtn && pomodoroWidget) {
+                testsPassed++;
+                log('✅ Test 1: Pomodoro UI elements exist', 'pass');
+            } else {
+                log('❌ Test 1: Pomodoro UI elements missing', 'fail');
+            }
+            
+            // Test 2: Open Widget
+            totalTests++;
+            if (pomodoroBtn) {
+                pomodoroBtn.click();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                if (pomodoroWidget.style.display === 'flex') {
+                    testsPassed++;
+                    log('✅ Test 2: Pomodoro widget opens correctly', 'pass');
+                } else {
+                    log('❌ Test 2: Pomodoro widget failed to open', 'fail');
+                }
+            } else {
+                log('❌ Test 2: Cannot test - button missing', 'fail');
+            }
+            
+            // Test 3: Timer Display
+            totalTests++;
+            const timerDisplay = doc.getElementById('pomodoroTimerDisplay');
+            const sessionIndicator = doc.getElementById('pomodoroSessionIndicator');
+            
+            if (timerDisplay && sessionIndicator) {
+                testsPassed++;
+                log(`✅ Test 3: Timer shows ${timerDisplay.textContent} - ${sessionIndicator.textContent}`, 'pass');
+            } else {
+                log('❌ Test 3: Timer display elements missing', 'fail');
+            }
+            
+            // Test 4: Control Buttons
+            totalTests++;
+            const startBtn = doc.getElementById('pomodoroStartPauseBtn');
+            const resetBtn = doc.getElementById('pomodoroResetBtn');
+            
+            if (startBtn && resetBtn) {
+                testsPassed++;
+                log('✅ Test 4: Control buttons (Start/Pause, Reset) found', 'pass');
+            } else {
+                log('❌ Test 4: Control buttons missing', 'fail');
+            }
+            
+            // Test 5: Timer Functionality
+            totalTests++;
+            if (startBtn && timerDisplay) {
+                const initialTime = timerDisplay.textContent;
+                startBtn.click(); // Start timer
+                
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const newTime = timerDisplay.textContent;
+                if (initialTime !== newTime) {
+                    testsPassed++;
+                    log(`✅ Test 5: Timer counts down (${initialTime} → ${newTime})`, 'pass');
+                } else {
+                    log('❌ Test 5: Timer not counting down', 'fail');
+                }
+                
+                // Stop timer
+                startBtn.click();
+            } else {
+                log('❌ Test 5: Cannot test timer - elements missing', 'fail');
+            }
+            
+            // Test 6: Settings Integration
+            totalTests++;
+            const settingsBtn = doc.getElementById('settingsBtn');
+            if (settingsBtn) {
+                settingsBtn.click();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const pomodoroTab = Array.from(doc.querySelectorAll('.modal-tab-btn'))
+                    .find(btn => btn.textContent.includes('Pomodoro'));
+                
+                if (pomodoroTab) {
+                    pomodoroTab.click();
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    const workInput = doc.getElementById('pomodoroWorkDuration');
+                    const shortBreakInput = doc.getElementById('pomodoroShortBreak');
+                    const longBreakInput = doc.getElementById('pomodoroLongBreak');
+                    
+                    if (workInput && shortBreakInput && longBreakInput) {
+                        testsPassed++;
+                        log(`✅ Test 6: Pomodoro settings found (Work: ${workInput.value}min)`, 'pass');
+                    } else {
+                        log('❌ Test 6: Pomodoro settings inputs missing', 'fail');
+                    }
+                    
+                    // Close settings
+                    const closeBtn = doc.querySelector('.settings-modal .close-btn');
+                    if (closeBtn) closeBtn.click();
+                } else {
+                    log('❌ Test 6: Pomodoro tab not found in settings', 'fail');
+                }
+            } else {
+                log('❌ Test 6: Settings button not found', 'fail');
+            }
+            
+            // Test 7: Reset Functionality
+            totalTests++;
+            if (resetBtn && timerDisplay) {
+                resetBtn.click();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Check if timer reset to initial value
+                if (timerDisplay.textContent === '25:00' || timerDisplay.textContent.includes(':00')) {
+                    testsPassed++;
+                    log(`✅ Test 7: Reset button works (Timer: ${timerDisplay.textContent})`, 'pass');
+                } else {
+                    log(`❌ Test 7: Reset may not be working (Timer: ${timerDisplay.textContent})`, 'fail');
+                }
+            } else {
+                log('❌ Test 7: Cannot test reset - elements missing', 'fail');
+            }
+            
+            // Summary
+            log('<h2>Test Summary</h2>', '');
+            const percentage = Math.round((testsPassed / totalTests) * 100);
+            const summaryClass = percentage >= 80 ? 'pass' : percentage >= 50 ? 'running' : 'fail';
+            log(`<strong>Results: ${testsPassed}/${totalTests} tests passed (${percentage}%)</strong>`, summaryClass);
+            
+            if (testsPassed === totalTests) {
+                log('🎉 All Pomodoro tests passed! Feature is ready to merge.', 'pass');
+            } else if (percentage >= 80) {
+                log('⚠️ Most tests passed. Review failures before merging.', 'running');
+            } else {
+                log('❌ Multiple test failures. Feature needs fixes.', 'fail');
+            }
+            
+            // Clean up
+            document.body.removeChild(iframe);
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 500);
+        });
+    </script>
+</body>
+</html>
